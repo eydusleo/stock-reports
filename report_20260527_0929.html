@@ -1,0 +1,2007 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>持仓深度分析 | 2026-05-27 09:21</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', 'PingFang SC', sans-serif;
+    background: #FAF8F5;
+    color: #2D2D2D;
+    line-height: 1.6;
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+.report-header {
+    background: #FFFFFF;
+    border: 1px solid #E8E4DF;
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 32px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.report-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1A1A1A;
+    margin-bottom: 8px;
+}
+.report-meta {
+    color: #7A7A7A;
+    font-size: 14px;
+}
+.summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 24px;
+}
+.summary-card {
+    background: #F5F2EE;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #E8E4DF;
+}
+.summary-card .label { color: #7A7A7A; font-size: 13px; margin-bottom: 4px; }
+.summary-card .value { font-size: 24px; font-weight: 700; color: #1A1A1A; }
+.section-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1A1A1A;
+    margin: 32px 0 16px;
+    padding-left: 12px;
+    border-left: 3px solid #6366F1;
+}
+.section-title.urgent { border-left-color: #DC2626; }
+.section-title.watch { border-left-color: #D97706; }
+.section-title.safe { border-left-color: #16A34A; }
+
+.stock-card {
+    background: #FFFFFF;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    border: 1px solid #E8E4DF;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+}
+.stock-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+.stock-card.urgent { border-left: 3px solid #DC2626; }
+.stock-card.watch { border-left: 3px solid #D97706; }
+.stock-card.safe { border-left: 3px solid #16A34A; }
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+.stock-symbol { font-size: 22px; font-weight: 700; color: #1A1A1A; }
+.stock-name { font-size: 14px; color: #7A7A7A; margin-left: 10px; }
+.stock-badge {
+    background: #EEF2FF;
+    color: #4F46E5;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+}
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+@media (max-width: 768px) {
+    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    .deep-analysis-grid { grid-template-columns: 1fr !important; }
+    .argument-section { flex-direction: column !important; }
+}
+.metric {
+    background: #F9F7F4;
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+    border: 1px solid #EDE9E4;
+}
+.metric-label { display: block; font-size: 12px; color: #7A7A7A; margin-bottom: 4px; }
+.metric-value { display: block; font-size: 16px; font-weight: 600; color: #1A1A1A; }
+
+.section-block { margin-bottom: 16px; }
+.section-block h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #4F46E5;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.trend-text { color: #4A4A4A; font-size: 14px; line-height: 1.7; }
+
+.data-table, .strategy-table, .risk-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.data-table td, .strategy-table td, .strategy-table th, .risk-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #EDE9E4;
+}
+.strategy-table th {
+    text-align: left;
+    color: #7A7A7A;
+    font-weight: 500;
+    font-size: 12px;
+}
+.price-cell { color: #B45309; font-weight: 600; }
+.risk-label { color: #DC2626; font-weight: 500; white-space: nowrap; }
+
+.news-list { list-style: none; }
+.news-item {
+    padding: 6px 0;
+    border-bottom: 1px solid #F0EDE9;
+    font-size: 13px;
+    color: #4A4A4A;
+}
+.news-item::before { content: "• "; color: #4F46E5; }
+
+/* ===== v2 深度分析区块 ===== */
+
+.deep-analysis-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+.deep-block {
+    background: #F9F7F4;
+    border-radius: 10px;
+    padding: 16px;
+    border: 1px solid #EDE9E4;
+}
+.deep-block-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #4F46E5;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.deep-icon { font-size: 15px; }
+
+/* 筹码分布 */
+.chip-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+.chip-metric {
+    display: flex;
+    flex-direction: column;
+    padding: 8px;
+    background: #FFFFFF;
+    border-radius: 6px;
+    border: 1px solid #EDE9E4;
+}
+.chip-metric.main-chip {
+    grid-column: span 2;
+    text-align: center;
+    background: #EEF2FF;
+    border: 1px solid #C7D2FE;
+}
+.chip-label { font-size: 11px; color: #7A7A7A; margin-bottom: 2px; }
+.chip-value { font-size: 16px; font-weight: 700; color: #1A1A1A; }
+.chip-value.small-val { font-size: 13px; font-weight: 500; }
+
+/* K线关键位 */
+.deep-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+.deep-table th {
+    text-align: left;
+    color: #7A7A7A;
+    font-weight: 500;
+    font-size: 11px;
+    padding: 4px 8px;
+    border-bottom: 1px solid #E8E4DF;
+}
+.deep-table td {
+    padding: 5px 8px;
+    border-bottom: 1px solid #F0EDE9;
+    color: #4A4A4A;
+}
+.kline-period { color: #7A7A7A; white-space: nowrap; font-size: 11px; }
+.compact-table td:first-child {
+    color: #7A7A7A;
+    font-size: 12px;
+    width: 40%;
+    white-space: nowrap;
+}
+
+/* 资金流向 */
+.fund-desc {
+    font-size: 12px;
+    color: #4A4A4A;
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+.fund-item { color: #7A7A7A; }
+.fund-in { color: #16A34A; font-weight: 600; }
+.fund-out { color: #DC2626; font-weight: 600; }
+
+/* ===== 正反论证区块 ===== */
+.argument-section {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+.argument-col {
+    flex: 1;
+    border-radius: 10px;
+    padding: 16px;
+}
+.bull-col {
+    background: #F0FDF4;
+    border: 1px solid #BBF7D0;
+}
+.bear-col {
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+}
+.argument-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #E8E4DF;
+}
+.bull-title { color: #16A34A; }
+.bear-title { color: #DC2626; }
+.argument-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.argument-list li {
+    padding: 5px 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #4A4A4A;
+    border-bottom: 1px solid #F0EDE9;
+}
+.bull-reason::before { content: "✅ "; }
+.bear-reason::before { content: "⚠️ "; }
+
+/* ===== 一句话裁决 ===== */
+.verdict-line {
+    background: #EEF2FF;
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-top: 16px;
+    border: 1px solid #C7D2FE;
+    position: relative;
+}
+.verdict-line::before {
+    content: "💡";
+    position: absolute;
+    left: 18px;
+    top: 14px;
+    font-size: 16px;
+}
+.verdict-line p {
+    color: #1E1B4B;
+    font-size: 14px;
+    font-weight: 600;
+    padding-left: 28px;
+    line-height: 1.6;
+}
+
+.changes-section, .actions-section {
+    background: #FFFFFF;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+    border: 1px solid #E8E4DF;
+}
+.changes-section ul, .actions-section ul { list-style: none; }
+.changes-section li, .actions-section li {
+    padding: 8px 0;
+    border-bottom: 1px solid #F0EDE9;
+    font-size: 14px;
+    color: #4A4A4A;
+}
+.action-num {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    background: #4F46E5;
+    color: white;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 24px;
+    font-size: 12px;
+    margin-right: 10px;
+}
+.footer {
+    text-align: center;
+    color: #9A9A9A;
+    font-size: 12px;
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #E8E4DF;
+}
+.key-data { margin-bottom: 16px; }
+.key-data td:first-child, .key-data td:nth-child(3) {
+    color: #7A7A7A;
+    font-size: 12px;
+    width: 20%;
+}
+</style>
+</head>
+<body>
+
+<div class="report-header">
+    <div class="report-title">持仓深度分析报告</div>
+    <div class="report-meta">2026-05-27 09:21 | A股盘前 | 10只标的</div>
+    <div class="summary-cards">
+        <div class="summary-card">
+            <div class="label">持仓总市值</div>
+            <div class="value">$93,793</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">总浮盈亏</div>
+            <div class="value" style="color:#16A34A">+$5,441</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">收益率</div>
+            <div class="value" style="color:#16A34A">+6.2%</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">标的数</div>
+            <div class="value">10</div>
+        </div>
+    </div>
+</div>
+
+<h2 class='section-title urgent'>紧急操作</h2>
+        <div class="stock-card urgent">
+            <div class="card-header">
+                <div class="stock-title">
+                    <span class="stock-symbol">NOTE</span>
+                    <span class="stock-name">FiscalNote</span>
+                </div>
+                <div class="stock-badge">33股 @ 6.53</div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric">
+                    <span class="metric-label">现价</span>
+                    <span class="metric-value">0.18</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">浮盈亏</span>
+                    <span class="metric-value" style="color:#f87171">-97.24%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">金额</span>
+                    <span class="metric-value" style="color:#f87171">$210</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">市值</span>
+                    <span class="metric-value">$6</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">今高</span>
+                    <span class="metric-value">—</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">今低</span>
+                    <span class="metric-value">—</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">做空</span>
+                    <span class="metric-value">N/A</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">PE</span>
+                    <span class="metric-value">—</span>
+                </div>
+            </div>
+
+            <div class="section-block">
+                <h4>走势解读</h4>
+                <p class="trend-text">从$0.87暴跌至$0.16后在$0.18-0.21区间横盘震荡两个月，成交量极低（日均10-40万股），已完全丧失流动性</p>
+            </div>
+
+            <div class="key-data">
+                <table class="data-table">
+                    <tr><td>52周高</td><td>—</td><td>换手率</td><td>—</td></tr>
+                    <tr><td>52周低</td><td>—</td><td>机构目标</td><td>—</td></tr>
+                    <tr><td>营收</td><td colspan="3">—</td></tr>
+                </table>
+            </div>
+
+            <div class="deep-analysis-grid">
+                
+                
+            <div class="deep-block kline-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">📈</span> K线关键位
+                </div>
+                <table class="deep-table">
+                    <thead><tr><th>时间段</th><th>价格</th><th>事件</th></tr></thead>
+                    <tbody><tr>
+                    <td class="kline-period">3/27-4/2</td>
+                    <td class="price-cell">0.87→0.24</td>
+                    <td>暴跌72%，从OTC转板退市风险</td>
+                </tr><tr>
+                    <td class="kline-period">4/10-5/26</td>
+                    <td class="price-cell">0.18-0.21</td>
+                    <td>僵尸横盘，日成交额仅$2-7万</td>
+                </tr></tbody>
+                </table>
+            </div>
+                
+            <div class="deep-block finance-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">💰</span> 财报亮点
+                </div>
+                <table class="deep-table compact-table">
+                    <tbody><tr>
+                    <td class="fin-item">年营收</td>
+                    <td>9540万美元(-5%)</td>
+                </tr><tr>
+                    <td class="fin-item">订阅收入占比</td>
+                    <td>93%但增长乏力</td>
+                </tr><tr>
+                    <td class="fin-item">市值</td>
+                    <td>仅$468万，已是仙股</td>
+                </tr></tbody>
+                </table>
+            </div>
+                
+            <div class="deep-block fund-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">💧</span> 资金流向
+                </div>
+                <p class='fund-desc'>无机构关注，做空数据不可用</p>
+                <table class="deep-table compact-table">
+                    <tbody><tr>
+                    <td class="fund-item">日成交额</td>
+                    <td class="fund-out">$2-7万，基本无流动性</td>
+                </tr><tr>
+                    <td class="fund-item">52周高低</td>
+                    <td class="">$10.2→$0.156，跌99%</td>
+                </tr></tbody>
+                </table>
+            </div>
+            </div>
+
+            <div class='section-block'><h4>新闻/研报</h4><ul class='news-list'><li class="news-item">盘中异动快速上涨6.12%（5/12短暂反弹）</li><li class="news-item">成交额持续萎缩至日均$2-5万</li></ul></div>
+
+            
+            <div class="argument-section">
+                <div class='argument-col bull-col'><div class='argument-title bull-title'>为什么不现在卖？</div><ul class='argument-list'><li class="bull-reason">持仓市值仅$5.94，卖出手续费可能超过回收金额</li><li class="bull-reason">理论上SaaS公司有被收购可能（年营收近1亿）</li><li class="bull-reason">已跌无可跌，亏损已锁定在$210</li></ul></div>
+                <div class='argument-col bear-col'><div class='argument-title bear-title'>为什么不能大意？</div><ul class='argument-list'><li class="bear-reason">OTC退市风险：股价长期低于$1面临纳斯达克摘牌</li><li class="bear-reason">流动性枯竭：日成交$2-7万，想卖可能卖不掉</li></ul></div>
+            </div>
+
+            <div class="section-block">
+                <h4>操作策略</h4>
+                <table class="strategy-table">
+                    <thead><tr><th>策略</th><th>价格</th><th>操作</th></tr></thead>
+                    <tbody><tr>
+                    <td>放弃不管33股（市值$5.94）</td>
+                    <td colspan="2">卖出手续费可能高于回收额，等退市自动清零</td>
+                </tr><tr>
+                    <td>挂单卖出33股@0.18-0.20（回收≈$5.94-6.60）</td>
+                    <td colspan="2">若能成交就清仓，不追求回本</td>
+                </tr></tbody>
+                </table>
+            </div>
+
+            <div class='section-block'><h4>风险提醒</h4><table class='risk-table'><tbody><tr>
+                    <td class="risk-label">纳斯达克摘牌退市</td>
+                    <td></td>
+                </tr><tr>
+                    <td class="risk-label">公司破产清算</td>
+                    <td></td>
+                </tr><tr>
+                    <td class="risk-label">流动性完全枯竭无法卖出</td>
+                    <td></td>
+                </tr></tbody></table></div>
+
+            <div class="verdict-line">
+                <p>实质性归零。$210学费已交完，残余$6不值得任何操作。心理上划掉这笔，聚焦其他9只。</p>
+            </div>
+        </div>
+        
+<h2 class='section-title watch'>重点关注</h2>
+        <div class="stock-card watch">
+            <div class="card-header">
+                <div class="stock-title">
+                    <span class="stock-symbol">GRAB</span>
+                    <span class="stock-name">Grab Holdings</span>
+                </div>
+                <div class="stock-badge">1100股 @ 3.8</div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric">
+                    <span class="metric-label">现价</span>
+                    <span class="metric-value">3.58</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">浮盈亏</span>
+                    <span class="metric-value" style="color:#f87171">-5.83%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">金额</span>
+                    <span class="metric-value" style="color:#f87171">$244</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">市值</span>
+                    <span class="metric-value">$3,938</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">今高</span>
+                    <span class="metric-value">—</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">今低</span>
+                    <span class="metric-value">—</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">做空</span>
+                    <span class="metric-value">N/A</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">PE</span>
+                    <span class="metric-value">—</span>
+                </div>
+            </div>
+
+            <div class="section-block">
+                <h4>走势解读</h4>
+                <p class="trend-text">从$4.21高点持续阴跌至$3.39创52周新低后，5/26反弹至$3.59，成交量从7000万股缩至3000-4000万股</p>
+            </div>
+
+            <div class="key-data">
+                <table class="data-table">
+                    <tr><td>52周高</td><td>—</td><td>换手率</td><td>—</td></tr>
+                    <tr><td>52周低</td><td>—</td><td>机构目标</td><td>—</td></tr>
+                    <tr><td>营收</td><td colspan="3">—</td></tr>
+                </table>
+            </div>
+
+            <div class="deep-analysis-grid">
+                
+                
+            <div class="deep-block kline-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">📈</span> K线关键位
+                </div>
+                <table class="deep-table">
+                    <thead><tr><th>时间段</th><th>价格</th><th>事件</th></tr></thead>
+                    <tbody><tr>
+                    <td class="kline-period">4/17高点</td>
+                    <td class="price-cell">$4.21</td>
+                    <td>Q1业绩推动波段高点</td>
+                </tr><tr>
+                    <td class="kline-period">5/5-5/20</td>
+                    <td class="price-cell">$3.80→$3.39</td>
+                    <td>持续阴跌创52周新低，印尼加息+监管施压</td>
+                </tr><tr>
+                    <td class="kline-period">5/21-5/26</td>
+                    <td class="price-cell">$3.45→$3.59</td>
+                    <td>企稳反弹+2.28%</td>
+                </tr></tbody>
+                </table>
+            </div>
+                
+            <div class="deep-block finance-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">💰</span> 财报亮点
+                </div>
+                <table class="deep-table compact-table">
+                    <tbody><tr>
+                    <td class="fin-item">2025营收</td>
+                    <td>33.7亿美元(配送53%+出行36%+金融10%)</td>
+                </tr><tr>
+                    <td class="fin-item">Q1 EBITDA</td>
+                    <td>超预期，斋月期间增长持续</td>
+                </tr><tr>
+                    <td class="fin-item">华泰评级</td>
+                    <td>宏观压力下维持增长韧性</td>
+                </tr></tbody>
+                </table>
+            </div>
+                
+            <div class="deep-block fund-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">💧</span> 资金流向
+                </div>
+                <p class='fund-desc'>无做空数据，成交量从高位7000万缩至3000万</p>
+                <table class="deep-table compact-table">
+                    <tbody><tr>
+                    <td class="fund-item">成交量趋势</td>
+                    <td class="fund-in">从7100万→3065万股，缩量50%+</td>
+                </tr><tr>
+                    <td class="fund-item">52周区间</td>
+                    <td class="fund-out">$3.39-$6.62，当前处于底部</td>
+                </tr></tbody>
+                </table>
+            </div>
+            </div>
+
+            <div class='section-block'><h4>新闻/研报</h4><ul class='news-list'><li class="news-item">Grab创52周新低，印尼加息及监管施压(5/20)</li><li class="news-item">华泰：宏观压力下维持增长韧性(5/7)</li><li class="news-item">中金：1Q26 EBITDA超预期(5/6)</li></ul></div>
+
+            
+            <div class="argument-section">
+                <div class='argument-col bull-col'><div class='argument-title bull-title'>为什么不现在卖？</div><ul class='argument-list'><li class="bull-reason">Q1 EBITDA超预期，业务基本面仍在改善</li><li class="bull-reason">东南亚超级App定位：配送+出行+金融三轮驱动</li><li class="bull-reason">$3.39已是52周新低，下方支撑较强</li><li class="bull-reason">中金/华泰维持买入评级</li></ul></div>
+                <div class='argument-col bear-col'><div class='argument-title bear-title'>为什么不能大意？</div><ul class='argument-list'><li class="bear-reason">印尼加息+监管施压，东南亚宏观环境恶化</li><li class="bear-reason">从$6.62跌到$3.39跌幅49%，趋势仍向下</li><li class="bear-reason">金融服务收入微乎其微，变现能力存疑</li></ul></div>
+            </div>
+
+            <div class="section-block">
+                <h4>操作策略</h4>
+                <table class="strategy-table">
+                    <thead><tr><th>策略</th><th>价格</th><th>操作</th></tr></thead>
+                    <tbody><tr>
+                    <td>持有1100股（$3938）</td>
+                    <td colspan="2">Q1超预期+$3.39已是底部支撑，等待宏观转好</td>
+                </tr><tr>
+                    <td>补仓300股@3.40-3.50（≈$1020-1050）</td>
+                    <td colspan="2">补完持1400股，摊低成本至$3.71</td>
+                </tr><tr>
+                    <td>止损全部1100股@3.20（回收≈$3520，亏$660）</td>
+                    <td colspan="2">若破前低$3.39清仓</td>
+                </tr></tbody>
+                </table>
+            </div>
+
+            <div class='section-block'><h4>风险提醒</h4><table class='risk-table'><tbody><tr>
+                    <td class="risk-label">印尼监管政策收紧</td>
+                    <td></td>
+                </tr><tr>
+                    <td class="risk-label">东南亚经济放缓</td>
+                    <td></td>
+                </tr><tr>
+                    <td class="risk-label">竞争对手GoTo/Line Man抢份额</td>
+                    <td></td>
+                </tr></tbody></table></div>
+
+            <div class="verdict-line">
+                <p>东南亚超级App基本面无虞，Q1超预期。但宏观逆风+持续阴跌需耐心。$3938仓位不大，持有等$3.39底部确认。</p>
+            </div>
+        </div>
+        
+        <div class="stock-card watch">
+            <div class="card-header">
+                <div class="stock-title">
+                    <span class="stock-symbol">06690</span>
+                    <span class="stock-name">海尔智家</span>
+                </div>
+                <div class="stock-badge">1200股 @ 20.88</div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric">
+                    <span class="metric-label">现价</span>
+                    <span class="metric-value">19.83</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">浮盈亏</span>
+                    <span class="metric-value" style="color:#f87171">-5.04%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">金额</span>
+                    <span class="metric-value" style="color:#f87171">$1263</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">市值</span>
+                    <span class="metric-value">$23,796</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">今高</span>
+                    <span class="metric-value">—</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">今低</span>
+                    <span class="metric-value">—</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">做空</span>
+                    <span class="metric-value">26.95%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">PE</span>
+                    <span class="metric-value">—</span>
+                </div>
+            </div>
+
+            <div class="section-block">
+                <h4>走势解读</h4>
+                <p class="trend-text">从HK$22.2高位持续走弱至$19.5创52周新低，5/26跌至$19.5后反弹至$19.91，今日开盘$19.83</p>
+            </div>
+
+            <div class="key-data">
+                <table class="data-table">
+                    <tr><td>52周高</td><td>—</td><td>换手率</td><td>—</td></tr>
+                    <tr><td>52周低</td><td>—</td><td>机构目标</td><td>—</td></tr>
+                    <tr><td>营收</td><td colspan="3">—</td></tr>
+                </table>
+            </div>
+
+            <div class="deep-analysis-grid">
+                
+                
+            <div class="deep-block kline-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">📈</span> K线关键位
+                </div>
+                <table class="deep-table">
+                    <thead><tr><th>时间段</th><th>价格</th><th>事件</th></tr></thead>
+                    <tbody><tr>
+                    <td class="kline-period">5/6-5/8</td>
+                    <td class="price-cell">21.6-21.8</td>
+                    <td>高位横盘</td>
+                </tr><tr>
+                    <td class="kline-period">5/11-5/22</td>
+                    <td class="price-cell">21.5→19.98</td>
+                    <td>连续阴跌破20关口</td>
+                </tr><tr>
+                    <td class="kline-period">5/26</td>
+                    <td class="price-cell">19.5→19.91</td>
+                    <td>创52周新低后反弹</td>
+                </tr></tbody>
+                </table>
+            </div>
+                
+            <div class="deep-block finance-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">💰</span> 财报亮点
+                </div>
+                <table class="deep-table compact-table">
+                    <tbody><tr>
+                    <td class="fin-item">Q1表现</td>
+                    <td>阶段性承压，经营韧性仍存(交银国际)</td>
+                </tr><tr>
+                    <td class="fin-item">股息率</td>
+                    <td>吸引力强，维持买入评级</td>
+                </tr><tr>
+                    <td class="fin-item">大股东</td>
+                    <td>自2009年累计增持20亿元且从未减持</td>
+                </tr></tbody>
+                </table>
+            </div>
+                
+            <div class="deep-block fund-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">💧</span> 资金流向
+                </div>
+                <p class='fund-desc'>南向持股19.68%连续增持+卖空26.95%高位对抗</p>
+                <table class="deep-table compact-table">
+                    <tbody><tr>
+                    <td class="fund-item">南向持股</td>
+                    <td class="fund-in">19.68%(+1987000股/5月26日)连续增持</td>
+                </tr><tr>
+                    <td class="fund-item">卖空比例</td>
+                    <td class="fund-out">26.95%-51.8%（5月中旬最高51.8%）</td>
+                </tr><tr>
+                    <td class="fund-item">多空对抗</td>
+                    <td class="fund-in">南向持续买入vs卖空高达43-51%</td>
+                </tr></tbody>
+                </table>
+            </div>
+            </div>
+
+            <div class='section-block'><h4>新闻/研报</h4><ul class='news-list'><li class="news-item">卖空量583.88万股比例26.95%(5/26)</li><li class="news-item">创52周新低板块疲弱拖累(5/26)</li><li class="news-item">大股东自2009年累计增持20亿(4/28)</li></ul></div>
+
+            
+            <div class="argument-section">
+                <div class='argument-col bull-col'><div class='argument-title bull-title'>为什么不现在卖？</div><ul class='argument-list'><li class="bull-reason">南向资金19.68%持续增持，内资坚定看好</li><li class="bull-reason">大股东自2009年累计增持20亿且从未减持，信心底</li><li class="bull-reason">股息率吸引力强，下跌越多股息越高</li><li class="bull-reason">$19.5已是52周新低，估值已充分调整</li></ul></div>
+                <div class='argument-col bear-col'><div class='argument-title bear-title'>为什么不能大意？</div><ul class='argument-list'><li class="bear-reason">卖空比例26-51%极高，空头压力巨大</li><li class="bear-reason">家电行业增长为高价格买单，Q1承压</li><li class="bear-reason">创52周新低后可能继续寻底</li></ul></div>
+            </div>
+
+            <div class="section-block">
+                <h4>操作策略</h4>
+                <table class="strategy-table">
+                    <thead><tr><th>策略</th><th>价格</th><th>操作</th></tr></thead>
+                    <tbody><tr>
+                    <td>持有1200股（HK$23796≈$3059）</td>
+                    <td colspan="2">南向近20%+大股东从不减持，股息兜底</td>
+                </tr><tr>
+                    <td>补仓200股@19.0-19.5（≈HK$3800-3900≈$490-500）</td>
+                    <td colspan="2">补完持1400股，摊低成本至$20.61</td>
+                </tr><tr>
+                    <td>止损600股@18.5（回收≈HK$11100≈$1427，亏$183）</td>
+                    <td colspan="2">破前低减半仓</td>
+                </tr></tbody>
+                </table>
+            </div>
+
+            <div class='section-block'><h4>风险提醒</h4><table class='risk-table'><tbody><tr>
+                    <td class="risk-label">卖空比例持续高位</td>
+                    <td></td>
+                </tr><tr>
+                    <td class="risk-label">家电需求不及预期</td>
+                    <td></td>
+                </tr><tr>
+                    <td class="risk-label">港元汇率波动</td>
+                    <td></td>
+                </tr></tbody></table></div>
+
+            <div class="verdict-line">
+                <p>南向近20%坚定增持vs卖空51%激烈对抗。大股东从不减持+高股息是安全垫。创新低后关注$19.0支撑，HKD仓位$3059不大。</p>
+            </div>
+        </div>
+        
+        <div class="stock-card watch">
+            <div class="card-header">
+                <div class="stock-title">
+                    <span class="stock-symbol">ISRG</span>
+                    <span class="stock-name">直觉外科</span>
+                </div>
+                <div class="stock-badge">32股 @ 440.9</div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric">
+                    <span class="metric-label">现价</span>
+                    <span class="metric-value">436.99</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">浮盈亏</span>
+                    <span class="metric-value" style="color:#f87171">-0.89%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">金额</span>
+                    <span class="metric-value" style="color:#f87171">$125</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">市值</span>
+                    <span class="metric-value">$13,984</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">今高</span>
+                    <span class="metric-value">—</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">今低</span>
+                    <span class="metric-value">—</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">做空</span>
+                    <span class="metric-value">3.87%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">PE</span>
+                    <span class="metric-value">—</span>
+                </div>
+            </div>
+
+            <div class="section-block">
+                <h4>走势解读</h4>
+                <p class="trend-text">从$462高点跌至$417.7后V形反弹至$449，近期在$435-443区间震荡，盘后+19.56%涨至约$522</p>
+            </div>
+
+            <div class="key-data">
+                <table class="data-table">
+                    <tr><td>52周高</td><td>—</td><td>换手率</td><td>—</td></tr>
+                    <tr><td>52周低</td><td>—</td><td>机构目标</td><td>—</td></tr>
+                    <tr><td>营收</td><td colspan="3">—</td></tr>
+                </table>
+            </div>
+
+            <div class="deep-analysis-grid">
+                
+                
+            <div class="deep-block kline-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">📈</span> K线关键位
+                </div>
+                <table class="deep-table">
+                    <thead><tr><th>时间段</th><th>价格</th><th>事件</th></tr></thead>
+                    <tbody><tr>
+                    <td class="kline-period">5/5-5/8</td>
+                    <td class="price-cell">450-453</td>
+                    <td>高位横盘</td>
+                </tr><tr>
+                    <td class="kline-period">5/11</td>
+                    <td class="price-cell">420</td>
+                    <td>单日暴跌-6.7%创近期低点</td>
+                </tr><tr>
+                    <td class="kline-period">5/12-5/22</td>
+                    <td class="price-cell">420-449</td>
+                    <td>V形反弹修复</td>
+                </tr><tr>
+                    <td class="kline-period">5/26</td>
+                    <td class="price-cell">436.64</td>
+                    <td>小幅回调，盘后涨19.56%</td>
+                </tr></tbody>
+                </table>
+            </div>
+                
+            <div class="deep-block finance-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">💰</span> 财报亮点
+                </div>
+                <table class="deep-table compact-table">
+                    <tbody><tr>
+                    <td class="fin-item">营收增长</td>
+                    <td>+23%，手术量增速13-15%</td>
+                </tr><tr>
+                    <td class="fin-item">全球装机</td>
+                    <td>1万+达芬奇系统，欧洲持续扩张</td>
+                </tr><tr>
+                    <td class="fin-item">耗材收入</td>
+                    <td>60%来自仪器耗材（复购率高）</td>
+                </tr></tbody>
+                </table>
+            </div>
+                
+            <div class="deep-block fund-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">💧</span> 资金流向
+                </div>
+                <p class='fund-desc'>做空3.87%较低，机构普遍维持买入</p>
+                <table class="deep-table compact-table">
+                    <tbody><tr>
+                    <td class="fund-item">做空比例</td>
+                    <td class="">3.87%（偏低）</td>
+                </tr><tr>
+                    <td class="fund-item">机构目标价</td>
+                    <td class="">TD Cowen $585/BTIG $574</td>
+                </tr></tbody>
+                </table>
+            </div>
+            </div>
+
+            <div class='section-block'><h4>新闻/研报</h4><ul class='news-list'><li class="news-item">直觉外科涨19.56%营收增23%利润双增(5/27盘后)</li><li class="news-item">中金：业绩符合预期持续强化欧洲布局(4/23)</li><li class="news-item">第一上海：手术量增速指引调降至13-15%(3/26)</li></ul></div>
+
+            
+            <div class="argument-section">
+                <div class='argument-col bull-col'><div class='argument-title bull-title'>为什么不现在卖？</div><ul class='argument-list'><li class="bull-reason">盘后涨19.56%！营收+23%利润双增确认高增长</li><li class="bull-reason">达芬奇手术机器人全球装机超1万台，耗材复购率高</li><li class="bull-reason">欧洲区域持续扩张，新增长点明确</li><li class="bull-reason">做空仅3.87%，机构一致目标$574-585</li></ul></div>
+                <div class='argument-col bear-col'><div class='argument-title bear-title'>为什么不能大意？</div><ul class='argument-list'><li class="bear-reason">手术量增速指引下调至13-15%（此前更高）</li><li class="bear-reason">估值高企P/E约35x，对增速放缓敏感</li></ul></div>
+            </div>
+
+            <div class="section-block">
+                <h4>操作策略</h4>
+                <table class="strategy-table">
+                    <thead><tr><th>策略</th><th>价格</th><th>操作</th></tr></thead>
+                    <tbody><tr>
+                    <td>持有32股</td>
+                    <td colspan="2">盘后涨19.56%确认业绩超预期，明日开盘约$522，浮盈将变为+$2592(+18.4%)</td>
+                </tr><tr>
+                    <td>明日开盘后减仓8股@520-530（回收≈$4160-4240）</td>
+                    <td colspan="2">保留24股底仓，锁定部分利润</td>
+                </tr><tr>
+                    <td>止损全部32股@480（若回落，回收≈$15360，盈$1252）</td>
+                    <td colspan="2">业绩兑现后获利了结</td>
+                </tr></tbody>
+                </table>
+            </div>
+
+            <div class='section-block'><h4>风险提醒</h4><table class='risk-table'><tbody><tr>
+                    <td class="risk-label">手术量增速下调</td>
+                    <td></td>
+                </tr><tr>
+                    <td class="risk-label">高估值回调压力</td>
+                    <td></td>
+                </tr><tr>
+                    <td class="risk-label">盘后涨幅开盘可能缩水</td>
+                    <td></td>
+                </tr></tbody></table></div>
+
+            <div class="verdict-line">
+                <p>重大利好！盘后暴涨19.56%确认营收+23%。明日开盘将从亏损$125变为盈利$2500+。建议部分获利了结8股锁定利润。</p>
+            </div>
+        </div>
+        
+<h2 class='section-title safe'>安全持有</h2>
+        <div class="stock-card safe">
+            <div class="card-header">
+                <div class="stock-title">
+                    <span class="stock-symbol">MU</span>
+                    <span class="stock-name">美光科技</span>
+                </div>
+                <div class="stock-badge">16股 @ 764.46</div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric">
+                    <span class="metric-label">现价</span>
+                    <span class="metric-value">914.53</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">浮盈亏</span>
+                    <span class="metric-value" style="color:#4ade80">+19.63%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">金额</span>
+                    <span class="metric-value" style="color:#4ade80">+$2401</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">市值</span>
+                    <span class="metric-value">$14,632</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">今高</span>
+                    <span class="metric-value">—</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">今低</span>
+                    <span class="metric-value">—</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">做空</span>
+                    <span class="metric-value">3.31%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">PE</span>
+                    <span class="metric-value">—</span>
+                </div>
+            </div>
+
+            <div class="section-block">
+                <h4>走势解读</h4>
+                <p class="trend-text">从$426暴涨至$916创历史新高，5/26单日涨19.29%突破万亿市值，盘后继续涨2%至$914.6</p>
+            </div>
+
+            <div class="key-data">
+                <table class="data-table">
+                    <tr><td>52周高</td><td>—</td><td>换手率</td><td>—</td></tr>
+                    <tr><td>52周低</td><td>—</td><td>机构目标</td><td>—</td></tr>
+                    <tr><td>营收</td><td colspan="3">—</td></tr>
+                </table>
+            </div>
+
+            <div class="deep-analysis-grid">
+                
+                
+            <div class="deep-block kline-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">📈</span> K线关键位
+                </div>
+                <table class="deep-table">
+                    <thead><tr><th>时间段</th><th>价格</th><th>事件</th></tr></thead>
+                    <tbody><tr>
+                    <td class="kline-period">4/14-4/30</td>
+                    <td class="price-cell">448-517</td>
+                    <td>震荡上行积蓄动能</td>
+                </tr><tr>
+                    <td class="kline-period">5/5-5/22</td>
+                    <td class="price-cell">517-751</td>
+                    <td>HBM+AI催化连续上攻</td>
+                </tr><tr>
+                    <td class="kline-period">5/26</td>
+                    <td class="price-cell">820→895(+19.3%)</td>
+                    <td>瑞银上调目标$1625+特朗普点名，暴涨突破万亿</td>
+                </tr></tbody>
+                </table>
+            </div>
+                
+            <div class="deep-block finance-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">💰</span> 财报亮点
+                </div>
+                <table class="deep-table compact-table">
+                    <tbody><tr>
+                    <td class="fin-item">FY2025营收</td>
+                    <td>373.65亿美元(云135亿+移动/客户端118亿+数据中心72亿)</td>
+                </tr><tr>
+                    <td class="fin-item">HBM4</td>
+                    <td>产能爬坡速度快2倍，良率提升</td>
+                </tr><tr>
+                    <td class="fin-item">市值里程碑</td>
+                    <td>突破1万亿美元，加入万亿俱乐部</td>
+                </tr></tbody>
+                </table>
+            </div>
+                
+            <div class="deep-block fund-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">💧</span> 资金流向
+                </div>
+                <p class='fund-desc'>做空3.31%小幅上升，但多头碾压</p>
+                <table class="deep-table compact-table">
+                    <tbody><tr>
+                    <td class="fund-item">做空比例</td>
+                    <td class="fund-in">3.31%(从2.61%→3.31%，做空增加中)</td>
+                </tr><tr>
+                    <td class="fund-item">瑞银目标价</td>
+                    <td class="">$1625（还有78%上涨空间）</td>
+                </tr><tr>
+                    <td class="fund-item">巴克莱/瑞银</td>
+                    <td class="">大幅上调目标价</td>
+                </tr></tbody>
+                </table>
+            </div>
+            </div>
+
+            <div class='section-block'><h4>新闻/研报</h4><ul class='news-list'><li class="news-item">暴涨19%突破万亿市值(5/26)</li><li class="news-item">瑞银上调目标价至$1625(5/26)</li><li class="news-item">特朗普点名美光(5/26)</li><li class="news-item">HBM4产能爬坡快两倍(5/26)</li><li class="news-item">美光$20亿扩产DDR4(5/26)</li></ul></div>
+
+            
+            <div class="argument-section">
+                <div class='argument-col bull-col'><div class='argument-title bull-title'>为什么不现在卖？</div><ul class='argument-list'><li class="bull-reason">瑞银目标$1625（当前$914还有78%空间）</li><li class="bull-reason">HBM4产能爬坡快2倍，AI存储需求爆发</li><li class="bull-reason">特朗普公开背书，$20亿扩产DDR4</li><li class="bull-reason">市值破万亿但PE仅42x，存储周期拐点</li></ul></div>
+                <div class='argument-col bear-col'><div class='argument-title bear-title'>为什么不能大意？</div><ul class='argument-list'><li class="bear-reason">投资大佬Gavin Baker喊话"100%该卖内存股"</li><li class="bear-reason">单日涨19%后短期获利盘巨大</li><li class="bear-reason">做空从2.6%升至3.3%，空头在加码</li><li class="bear-reason">存储周期见顶风险（但HBM打破周期逻辑）</li></ul></div>
+            </div>
+
+            <div class="section-block">
+                <h4>操作策略</h4>
+                <table class="strategy-table">
+                    <thead><tr><th>策略</th><th>价格</th><th>操作</th></tr></thead>
+                    <tbody><tr>
+                    <td>持有16股（$14632）</td>
+                    <td colspan="2">瑞银目标$1625还有78%空间，HBM4打破传统周期</td>
+                </tr><tr>
+                    <td>减仓4股@900-920（回收≈$3600-3680）</td>
+                    <td colspan="2">锁定25%利润，保留12股核心仓</td>
+                </tr><tr>
+                    <td>止损全部16股@780（回收≈$12480，盈$248）</td>
+                    <td colspan="2">破5/22支撑位清仓</td>
+                </tr></tbody>
+                </table>
+            </div>
+
+            <div class='section-block'><h4>风险提醒</h4><table class='risk-table'><tbody><tr>
+                    <td class="risk-label">单日暴涨后回调压力</td>
+                    <td></td>
+                </tr><tr>
+                    <td class="risk-label">大佬喊卖内存股</td>
+                    <td></td>
+                </tr><tr>
+                    <td class="risk-label">做空比例在上升</td>
+                    <td></td>
+                </tr><tr>
+                    <td class="risk-label">估值争议</td>
+                    <td></td>
+                </tr></tbody></table></div>
+
+            <div class="verdict-line">
+                <p>历史时刻！万亿俱乐部新贵，瑞银目标$1625。但单日+19%后建议减4股锁利润。HBM打破周期魔咒是核心逻辑。</p>
+            </div>
+        </div>
+        
+        <div class="stock-card safe">
+            <div class="card-header">
+                <div class="stock-title">
+                    <span class="stock-symbol">GLW</span>
+                    <span class="stock-name">康宁</span>
+                </div>
+                <div class="stock-badge">58股 @ 173.67</div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric">
+                    <span class="metric-label">现价</span>
+                    <span class="metric-value">197.17</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">浮盈亏</span>
+                    <span class="metric-value" style="color:#4ade80">+13.53%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">金额</span>
+                    <span class="metric-value" style="color:#4ade80">+$1363</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">市值</span>
+                    <span class="metric-value">$11,436</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">今高</span>
+                    <span class="metric-value">—</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">今低</span>
+                    <span class="metric-value">—</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">做空</span>
+                    <span class="metric-value">N/A</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">PE</span>
+                    <span class="metric-value">—</span>
+                </div>
+            </div>
+
+            <div class="section-block">
+                <h4>走势解读</h4>
+                <p class="trend-text">从$158暴涨至$211.8创历史新高后回调至$169.8，再V形反弹至$197，盘后涨至$197.18</p>
+            </div>
+
+            <div class="key-data">
+                <table class="data-table">
+                    <tr><td>52周高</td><td>—</td><td>换手率</td><td>—</td></tr>
+                    <tr><td>52周低</td><td>—</td><td>机构目标</td><td>—</td></tr>
+                    <tr><td>营收</td><td colspan="3">—</td></tr>
+                </table>
+            </div>
+
+            <div class="deep-analysis-grid">
+                
+                
+            <div class="deep-block kline-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">📈</span> K线关键位
+                </div>
+                <table class="deep-table">
+                    <thead><tr><th>时间段</th><th>价格</th><th>事件</th></tr></thead>
+                    <tbody><tr>
+                    <td class="kline-period">5/6</td>
+                    <td class="price-cell">189→181</td>
+                    <td>京东方合作消息冲高回落</td>
+                </tr><tr>
+                    <td class="kline-period">5/11-5/14</td>
+                    <td class="price-cell">207-208</td>
+                    <td>创历史新高$211.79</td>
+                </tr><tr>
+                    <td class="kline-period">5/15-5/19</td>
+                    <td class="price-cell">191→169.8</td>
+                    <td>暴跌-19%回调</td>
+                </tr><tr>
+                    <td class="kline-period">5/20-5/26</td>
+                    <td class="price-cell">175→196</td>
+                    <td>V形反弹修复</td>
+                </tr></tbody>
+                </table>
+            </div>
+                
+            <div class="deep-block finance-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">💰</span> 财报亮点
+                </div>
+                <table class="deep-table compact-table">
+                    <tbody><tr>
+                    <td class="fin-item">光通信</td>
+                    <td>62.74亿(+34.7%)占营收40%</td>
+                </tr><tr>
+                    <td class="fin-item">显示</td>
+                    <td>36.97亿占24%</td>
+                </tr><tr>
+                    <td class="fin-item">京东方合作</td>
+                    <td>玻璃基封装等四大领域(5/25)</td>
+                </tr></tbody>
+                </table>
+            </div>
+                
+            <div class="deep-block fund-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">💧</span> 资金流向
+                </div>
+                <p class='fund-desc'>机构分歧：瑞穗/中信买入vs摩根下调</p>
+                <table class="deep-table compact-table">
+                    <tbody><tr>
+                    <td class="fund-item">中信证券</td>
+                    <td class="fund-in">买入，目标$189</td>
+                </tr><tr>
+                    <td class="fund-item">瑞穗</td>
+                    <td class="fund-in">买入，目标$190</td>
+                </tr><tr>
+                    <td class="fund-item">摩根大通</td>
+                    <td class="">下调评级（光虽好但太贵）</td>
+                </tr></tbody>
+                </table>
+            </div>
+            </div>
+
+            <div class='section-block'><h4>新闻/研报</h4><ul class='news-list'><li class="news-item">京东方与康宁签署合作备忘录聚焦玻璃基封装(5/25)</li><li class="news-item">华为韬定律利好光纤行业(5/25)</li><li class="news-item">光纤行业现状与发展趋势深度分析(5/25)</li></ul></div>
+
+            
+            <div class="argument-section">
+                <div class='argument-col bull-col'><div class='argument-title bull-title'>为什么不现在卖？</div><ul class='argument-list'><li class="bull-reason">光通信营收+34.7%，AI光纤需求确定性强</li><li class="bull-reason">京东方合作玻璃基封装等四大领域（5/25最新）</li><li class="bull-reason">华为韬定律利好光纤行业</li><li class="bull-reason">V形反弹显示买盘强劲</li></ul></div>
+                <div class='argument-col bear-col'><div class='argument-title bear-title'>为什么不能大意？</div><ul class='argument-list'><li class="bear-reason">摩根下调评级称"光虽好但太贵"</li><li class="bear-reason">从$211.8回调到$169.8已跌20%，波动剧烈</li><li class="bear-reason">已超越中信/瑞穗目标价$189-190</li></ul></div>
+            </div>
+
+            <div class="section-block">
+                <h4>操作策略</h4>
+                <table class="strategy-table">
+                    <thead><tr><th>策略</th><th>价格</th><th>操作</th></tr></thead>
+                    <tbody><tr>
+                    <td>持有58股（$11435）</td>
+                    <td colspan="2">光通信+34.7%确定性强+京东方合作刚签</td>
+                </tr><tr>
+                    <td>减仓15股@195-200（回收≈$2925-3000）</td>
+                    <td colspan="2">已超机构目标$190，锁定利润</td>
+                </tr><tr>
+                    <td>止损全部58股@170（回收≈$9860，亏损$212）</td>
+                    <td colspan="2">破V形反弹起点清仓</td>
+                </tr></tbody>
+                </table>
+            </div>
+
+            <div class='section-block'><h4>风险提醒</h4><table class='risk-table'><tbody><tr>
+                    <td class="risk-label">已超机构目标价$189-190</td>
+                    <td></td>
+                </tr><tr>
+                    <td class="risk-label">波动率极高（20%回调）</td>
+                    <td></td>
+                </tr><tr>
+                    <td class="risk-label">太阳能业务拖累</td>
+                    <td></td>
+                </tr></tbody></table></div>
+
+            <div class="verdict-line">
+                <p>AI光纤赛道确定性标的+京东方合作新催化。但已超机构目标价$190，建议减15股锁利。保留43股等光通信持续放量。</p>
+            </div>
+        </div>
+        
+        <div class="stock-card safe">
+            <div class="card-header">
+                <div class="stock-title">
+                    <span class="stock-symbol">TER</span>
+                    <span class="stock-name">泰瑞达</span>
+                </div>
+                <div class="stock-badge">15股 @ 343.98</div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric">
+                    <span class="metric-label">现价</span>
+                    <span class="metric-value">391.5</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">浮盈亏</span>
+                    <span class="metric-value" style="color:#4ade80">+13.82%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">金额</span>
+                    <span class="metric-value" style="color:#4ade80">+$713</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">市值</span>
+                    <span class="metric-value">$5,872</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">今高</span>
+                    <span class="metric-value">—</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">今低</span>
+                    <span class="metric-value">—</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">做空</span>
+                    <span class="metric-value">2.92%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">PE</span>
+                    <span class="metric-value">—</span>
+                </div>
+            </div>
+
+            <div class="section-block">
+                <h4>走势解读</h4>
+                <p class="trend-text">从$421跌至$309后强势反弹，5/26单日涨8.56%至$389，盘后续涨至$391.5</p>
+            </div>
+
+            <div class="key-data">
+                <table class="data-table">
+                    <tr><td>52周高</td><td>—</td><td>换手率</td><td>—</td></tr>
+                    <tr><td>52周低</td><td>—</td><td>机构目标</td><td>—</td></tr>
+                    <tr><td>营收</td><td colspan="3">—</td></tr>
+                </table>
+            </div>
+
+            <div class="deep-analysis-grid">
+                
+                
+            <div class="deep-block kline-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">📈</span> K线关键位
+                </div>
+                <table class="deep-table">
+                    <thead><tr><th>时间段</th><th>价格</th><th>事件</th></tr></thead>
+                    <tbody><tr>
+                    <td class="kline-period">4/24</td>
+                    <td class="price-cell">$418-422</td>
+                    <td>历史高点区域</td>
+                </tr><tr>
+                    <td class="kline-period">5/1-5/7</td>
+                    <td class="price-cell">421→345</td>
+                    <td>盘后跌23%+业绩指引弱兑现</td>
+                </tr><tr>
+                    <td class="kline-period">5/15-5/19</td>
+                    <td class="price-cell">337→309</td>
+                    <td>继续探底至$309</td>
+                </tr><tr>
+                    <td class="kline-period">5/20-5/26</td>
+                    <td class="price-cell">321→389(+8.56%)</td>
+                    <td>V形强势反弹</td>
+                </tr></tbody>
+                </table>
+            </div>
+                
+            <div class="deep-block finance-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">💰</span> 财报亮点
+                </div>
+                <table class="deep-table compact-table">
+                    <tbody><tr>
+                    <td class="fin-item">半导体测试</td>
+                    <td>25.24亿占79%</td>
+                </tr><tr>
+                    <td class="fin-item">业绩指引</td>
+                    <td>弱于预期导致盘后跌23%</td>
+                </tr><tr>
+                    <td class="fin-item">AI测试需求</td>
+                    <td>瑞银/贝雅维持买入上调目标$332-440</td>
+                </tr></tbody>
+                </table>
+            </div>
+                
+            <div class="deep-block fund-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">💧</span> 资金流向
+                </div>
+                <p class='fund-desc'>做空2.92%低位+机构一致买入</p>
+                <table class="deep-table compact-table">
+                    <tbody><tr>
+                    <td class="fund-item">做空比例</td>
+                    <td class="">2.92%(较低)</td>
+                </tr><tr>
+                    <td class="fund-item">瑞银目标</td>
+                    <td class="fund-in">$440(买入)</td>
+                </tr><tr>
+                    <td class="fund-item">木头姐</td>
+                    <td class="">5/23抛售半导体龙头</td>
+                </tr></tbody>
+                </table>
+            </div>
+            </div>
+
+            <div class='section-block'><h4>新闻/研报</h4><ul class='news-list'><li class="news-item">泰瑞达5/26涨8.56%(AI测试需求重估)</li><li class="news-item">木头姐再度抛售半导体龙头(5/23)</li><li class="news-item">泰瑞达盘后跌23%业绩指引弱于预期(5/23)</li></ul></div>
+
+            
+            <div class="argument-section">
+                <div class='argument-col bull-col'><div class='argument-title bull-title'>为什么不现在卖？</div><ul class='argument-list'><li class="bull-reason">AI测试需求高增长是长期逻辑</li><li class="bull-reason">从$309低点已反弹26%，V形反弹确认底部</li><li class="bull-reason">瑞银目标$440还有13%空间</li><li class="bull-reason">做空仅2.92%极低</li></ul></div>
+                <div class='argument-col bear-col'><div class='argument-title bear-title'>为什么不能大意？</div><ul class='argument-list'><li class="bear-reason">业绩指引弱于预期（导致此前暴跌23%）</li><li class="bear-reason">木头姐5/23抛售半导体龙头</li><li class="bear-reason">接近前高$421-422有压力</li></ul></div>
+            </div>
+
+            <div class="section-block">
+                <h4>操作策略</h4>
+                <table class="strategy-table">
+                    <thead><tr><th>策略</th><th>价格</th><th>操作</th></tr></thead>
+                    <tbody><tr>
+                    <td>持有15股（$5872）</td>
+                    <td colspan="2">AI测试需求确定+V形反弹确认底部+瑞银目标$440</td>
+                </tr><tr>
+                    <td>减仓5股@400-410（回收≈$2000-2050）</td>
+                    <td colspan="2">接近前高减仓，保留10股</td>
+                </tr><tr>
+                    <td>止损全部15股@340（回收≈$5100，亏$60）</td>
+                    <td colspan="2">破反弹起点清仓</td>
+                </tr></tbody>
+                </table>
+            </div>
+
+            <div class='section-block'><h4>风险提醒</h4><table class='risk-table'><tbody><tr>
+                    <td class="risk-label">业绩指引弱可能持续</td>
+                    <td></td>
+                </tr><tr>
+                    <td class="risk-label">木头姐抛售信号</td>
+                    <td></td>
+                </tr><tr>
+                    <td class="risk-label">接近前高$422压力位</td>
+                    <td></td>
+                </tr></tbody></table></div>
+
+            <div class="verdict-line">
+                <p>业绩暴跌-23%恐慌已消化，V形反弹确认底部$309。AI测试需求长逻辑不变，瑞银目标$440。仓位$5872适中，持有为主。</p>
+            </div>
+        </div>
+        
+        <div class="stock-card safe">
+            <div class="card-header">
+                <div class="stock-title">
+                    <span class="stock-symbol">CEG</span>
+                    <span class="stock-name">星座能源</span>
+                </div>
+                <div class="stock-badge">61股 @ 285.13</div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric">
+                    <span class="metric-label">现价</span>
+                    <span class="metric-value">302.1</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">浮盈亏</span>
+                    <span class="metric-value" style="color:#4ade80">+5.95%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">金额</span>
+                    <span class="metric-value" style="color:#4ade80">+$1035</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">市值</span>
+                    <span class="metric-value">$18,428</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">今高</span>
+                    <span class="metric-value">—</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">今低</span>
+                    <span class="metric-value">—</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">做空</span>
+                    <span class="metric-value">2.92%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">PE</span>
+                    <span class="metric-value">—</span>
+                </div>
+            </div>
+
+            <div class="section-block">
+                <h4>走势解读</h4>
+                <p class="trend-text">从$313跌至$271创60日新低后反弹至$301，等待6月三哩岛核电站重启决定</p>
+            </div>
+
+            <div class="key-data">
+                <table class="data-table">
+                    <tr><td>52周高</td><td>—</td><td>换手率</td><td>—</td></tr>
+                    <tr><td>52周低</td><td>—</td><td>机构目标</td><td>—</td></tr>
+                    <tr><td>营收</td><td colspan="3">—</td></tr>
+                </table>
+            </div>
+
+            <div class="deep-analysis-grid">
+                
+                
+            <div class="deep-block kline-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">📈</span> K线关键位
+                </div>
+                <table class="deep-table">
+                    <thead><tr><th>时间段</th><th>价格</th><th>事件</th></tr></thead>
+                    <tbody><tr>
+                    <td class="kline-period">4/14-4/30</td>
+                    <td class="price-cell">287-313</td>
+                    <td>Q1净利润+1247%后震荡</td>
+                </tr><tr>
+                    <td class="kline-period">5/11-5/18</td>
+                    <td class="price-cell">287→271</td>
+                    <td>业绩虽好但未上调指引跌至60日新低</td>
+                </tr><tr>
+                    <td class="kline-period">5/19-5/26</td>
+                    <td class="price-cell">278→301</td>
+                    <td>反弹修复，等6月三哩岛决定</td>
+                </tr></tbody>
+                </table>
+            </div>
+                
+            <div class="deep-block finance-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">💰</span> 财报亮点
+                </div>
+                <table class="deep-table compact-table">
+                    <tbody><tr>
+                    <td class="fin-item">Q1净利润</td>
+                    <td>$15.9亿(同比+1247.46%)</td>
+                </tr><tr>
+                    <td class="fin-item">年营收</td>
+                    <td>$255.3亿(多区域核电运营)</td>
+                </tr><tr>
+                    <td class="fin-item">催化剂</td>
+                    <td>6月监管机构决定三哩岛核电站重启</td>
+                </tr></tbody>
+                </table>
+            </div>
+                
+            <div class="deep-block fund-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">💧</span> 资金流向
+                </div>
+                <p class='fund-desc'>做空2.92%小幅上升，机构配置3.3%属常规</p>
+                <table class="deep-table compact-table">
+                    <tbody><tr>
+                    <td class="fund-item">做空比例</td>
+                    <td class="">2.92%(从2.6%→2.92%微升)</td>
+                </tr><tr>
+                    <td class="fund-item">机构持仓</td>
+                    <td class="">3.3%属常规配置水平</td>
+                </tr></tbody>
+                </table>
+            </div>
+            </div>
+
+            <div class='section-block'><h4>新闻/研报</h4><ul class='news-list'><li class="news-item">Q1净利润$15.9亿同比+1247%(5/18)</li><li class="news-item">AI算力需求推升核电价值涨超17%(5/15)</li><li class="news-item">6月监管机构决定三哩岛核电站重启(5/12)</li><li class="news-item">绩后跌4.39%未上调全年指引(5/11)</li></ul></div>
+
+            
+            <div class="argument-section">
+                <div class='argument-col bull-col'><div class='argument-title bull-title'>为什么不现在卖？</div><ul class='argument-list'><li class="bull-reason">Q1净利润暴增1247%，核电价值被AI算力需求重估</li><li class="bull-reason">6月三哩岛重启决定是重大催化剂（距离不到1个月）</li><li class="bull-reason">AI算力需求推升核电价值（5/15涨超17%）</li><li class="bull-reason">做空仅2.92%低位</li></ul></div>
+                <div class='argument-col bear-col'><div class='argument-title bear-title'>为什么不能大意？</div><ul class='argument-list'><li class="bear-reason">Q1暴利但未上调全年指引，市场失望卖出</li><li class="bear-reason">三哩岛决定如果被否是重大利空</li><li class="bear-reason">从$411高点已跌27%</li></ul></div>
+            </div>
+
+            <div class="section-block">
+                <h4>操作策略</h4>
+                <table class="strategy-table">
+                    <thead><tr><th>策略</th><th>价格</th><th>操作</th></tr></thead>
+                    <tbody><tr>
+                    <td>持有61股（$18428）</td>
+                    <td colspan="2">6月三哩岛催化剂不到1个月，不要在利好前离场</td>
+                </tr><tr>
+                    <td>减仓15股@305-310（回收≈$4575-4650）</td>
+                    <td colspan="2">先锁定部分利润，保留46股等6月</td>
+                </tr><tr>
+                    <td>止损全部61股@270（回收≈$16470，亏$920）</td>
+                    <td colspan="2">若三哩岛被否或破前低清仓</td>
+                </tr></tbody>
+                </table>
+            </div>
+
+            <div class='section-block'><h4>风险提醒</h4><table class='risk-table'><tbody><tr>
+                    <td class="risk-label">三哩岛重启被否</td>
+                    <td></td>
+                </tr><tr>
+                    <td class="risk-label">全年指引未上调</td>
+                    <td></td>
+                </tr><tr>
+                    <td class="risk-label">核电政策风险</td>
+                    <td></td>
+                </tr></tbody></table></div>
+
+            <div class="verdict-line">
+                <p>Q1利润+1247%验证核电+AI逻辑。6月三哩岛决定是月内最大催化剂，建议持有等结果。$18428是第二大仓位，可减15股控风险。</p>
+            </div>
+        </div>
+        
+        <div class="stock-card safe">
+            <div class="card-header">
+                <div class="stock-title">
+                    <span class="stock-symbol">06809</span>
+                    <span class="stock-name">澜起科技</span>
+                </div>
+                <div class="stock-badge">200股 @ 469.62</div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric">
+                    <span class="metric-label">现价</span>
+                    <span class="metric-value">484.6</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">浮盈亏</span>
+                    <span class="metric-value" style="color:#4ade80">+3.19%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">金额</span>
+                    <span class="metric-value" style="color:#4ade80">+$2997</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">市值</span>
+                    <span class="metric-value">$96,920</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">今高</span>
+                    <span class="metric-value">—</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">今低</span>
+                    <span class="metric-value">—</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">做空</span>
+                    <span class="metric-value">N/A(不可做空)</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">PE</span>
+                    <span class="metric-value">—</span>
+                </div>
+            </div>
+
+            <div class="section-block">
+                <h4>走势解读</h4>
+                <p class="trend-text">从HK$209暴涨至$500创历史新高后回调至$462，今日开盘$484.6</p>
+            </div>
+
+            <div class="key-data">
+                <table class="data-table">
+                    <tr><td>52周高</td><td>—</td><td>换手率</td><td>—</td></tr>
+                    <tr><td>52周低</td><td>—</td><td>机构目标</td><td>—</td></tr>
+                    <tr><td>营收</td><td colspan="3">—</td></tr>
+                </table>
+            </div>
+
+            <div class="deep-analysis-grid">
+                
+                
+            <div class="deep-block kline-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">📈</span> K线关键位
+                </div>
+                <table class="deep-table">
+                    <thead><tr><th>时间段</th><th>价格</th><th>事件</th></tr></thead>
+                    <tbody><tr>
+                    <td class="kline-period">4/27-4/30</td>
+                    <td class="price-cell">245→261</td>
+                    <td>南向狂买+突破性上涨</td>
+                </tr><tr>
+                    <td class="kline-period">5/6-5/14</td>
+                    <td class="price-cell">321→420</td>
+                    <td>AI+HBM催化连续暴涨</td>
+                </tr><tr>
+                    <td class="kline-period">5/18-5/21</td>
+                    <td class="price-cell">440→500</td>
+                    <td>冲击历史新高$500</td>
+                </tr><tr>
+                    <td class="kline-period">5/22-5/27</td>
+                    <td class="price-cell">471→484.6</td>
+                    <td>高位震荡消化</td>
+                </tr></tbody>
+                </table>
+            </div>
+                
+            <div class="deep-block finance-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">💰</span> 财报亮点
+                </div>
+                <table class="deep-table compact-table">
+                    <tbody><tr>
+                    <td class="fin-item">产品线</td>
+                    <td>互连类芯片(DDR5 RCD)+津逮服务器CPU</td>
+                </tr><tr>
+                    <td class="fin-item">南向持股</td>
+                    <td>12.23%（从5.8%一个月翻倍）</td>
+                </tr><tr>
+                    <td class="fin-item">股东动态</td>
+                    <td>第五大股东30亿出让1%股份被20家机构全额认购</td>
+                </tr></tbody>
+                </table>
+            </div>
+                
+            <div class="deep-block fund-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">💧</span> 资金流向
+                </div>
+                <p class='fund-desc'>不可做空+南向从5.8%暴增至12.2%</p>
+                <table class="deep-table compact-table">
+                    <tbody><tr>
+                    <td class="fund-item">南向持股</td>
+                    <td class="">12.23%(4/27为5.82%，一个月翻倍)</td>
+                </tr><tr>
+                    <td class="fund-item">可否做空</td>
+                    <td class="">否（纯多头标的）</td>
+                </tr><tr>
+                    <td class="fund-item">股东出让</td>
+                    <td class="">30亿@250元被20家机构秒抢</td>
+                </tr></tbody>
+                </table>
+            </div>
+            </div>
+
+            <div class='section-block'><h4>新闻/研报</h4><ul class='news-list'><li class="news-item">股东频频高位减持累计套现250亿(5/27)</li><li class="news-item">7家半导体公司减持潮127亿(5/26)</li><li class="news-item">第五大股东30亿出让1%被20家机构认购(5/25)</li><li class="news-item">南向连续5日增持(5/26)</li></ul></div>
+
+            
+            <div class="argument-section">
+                <div class='argument-col bull-col'><div class='argument-title bull-title'>为什么不现在卖？</div><ul class='argument-list'><li class="bull-reason">DDR5 RCD芯片全球寡头（内存接口芯片龙头）</li><li class="bull-reason">南向从5.8%→12.2%一个月翻倍，内资疯抢</li><li class="bull-reason">不可做空=纯多头博弈，无空头压制</li><li class="bull-reason">20家机构@250元秒抢30亿，说明底价$250有强支撑</li></ul></div>
+                <div class='argument-col bear-col'><div class='argument-title bear-title'>为什么不能大意？</div><ul class='argument-list'><li class="bear-reason">股东频频高位减持累计将套现250亿</li><li class="bear-reason">7家半导体公司减持潮127亿</li><li class="bear-reason">从$209涨到$500已翻倍+，获利盘巨大</li><li class="bear-reason">HK$96920是最大仓位（占总仓位66%），集中度风险极高</li></ul></div>
+            </div>
+
+            <div class="section-block">
+                <h4>操作策略</h4>
+                <table class="strategy-table">
+                    <thead><tr><th>策略</th><th>价格</th><th>操作</th></tr></thead>
+                    <tbody><tr>
+                    <td>减仓50股@490-500（回收≈HK$24500-25000≈$3149-3213）</td>
+                    <td colspan="2">仓位占比66%太集中，必须降低</td>
+                </tr><tr>
+                    <td>持有剩余150股（≈HK$72690≈$9343）</td>
+                    <td colspan="2">DDR5 RCD龙头+南向12%+不可做空</td>
+                </tr><tr>
+                    <td>止损全部200股@420（回收≈HK$84000≈$10798，盈$641）</td>
+                    <td colspan="2">破5/14支撑位清仓</td>
+                </tr></tbody>
+                </table>
+            </div>
+
+            <div class='section-block'><h4>风险提醒</h4><table class='risk-table'><tbody><tr>
+                    <td class="risk-label">股东减持潮250亿</td>
+                    <td></td>
+                </tr><tr>
+                    <td class="risk-label">仓位占比66%集中度极高</td>
+                    <td></td>
+                </tr><tr>
+                    <td class="risk-label">获利盘巨大随时回调</td>
+                    <td></td>
+                </tr><tr>
+                    <td class="risk-label">半导体板块减持127亿</td>
+                    <td></td>
+                </tr></tbody></table></div>
+
+            <div class="verdict-line">
+                <p>DDR5接口芯片全球龙头，AI算力+HBM催化。但HK$96920占总仓位66%严重超配！必须减50股@490-500降低集中度风险。</p>
+            </div>
+        </div>
+        
+        <div class="stock-card safe">
+            <div class="card-header">
+                <div class="stock-title">
+                    <span class="stock-symbol">TSM</span>
+                    <span class="stock-name">台积电</span>
+                </div>
+                <div class="stock-badge">24股 @ 404.0</div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric">
+                    <span class="metric-label">现价</span>
+                    <span class="metric-value">415.85</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">浮盈亏</span>
+                    <span class="metric-value" style="color:#4ade80">+2.93%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">金额</span>
+                    <span class="metric-value" style="color:#4ade80">+$284</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">市值</span>
+                    <span class="metric-value">$9,980</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">今高</span>
+                    <span class="metric-value">—</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">今低</span>
+                    <span class="metric-value">—</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">做空</span>
+                    <span class="metric-value">0.52%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">PE</span>
+                    <span class="metric-value">—</span>
+                </div>
+            </div>
+
+            <div class="section-block">
+                <h4>走势解读</h4>
+                <p class="trend-text">从$363跌后稳步反弹至$416，盘后续涨至$415.5，整体处于上升通道</p>
+            </div>
+
+            <div class="key-data">
+                <table class="data-table">
+                    <tr><td>52周高</td><td>—</td><td>换手率</td><td>—</td></tr>
+                    <tr><td>52周低</td><td>—</td><td>机构目标</td><td>—</td></tr>
+                    <tr><td>营收</td><td colspan="3">—</td></tr>
+                </table>
+            </div>
+
+            <div class="deep-analysis-grid">
+                
+                
+            <div class="deep-block kline-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">📈</span> K线关键位
+                </div>
+                <table class="deep-table">
+                    <thead><tr><th>时间段</th><th>价格</th><th>事件</th></tr></thead>
+                    <tbody><tr>
+                    <td class="kline-period">4/16</td>
+                    <td class="price-cell">$363</td>
+                    <td>Q1财报日(营收+40%净利+65%)跌3.2%</td>
+                </tr><tr>
+                    <td class="kline-period">4/17-5/7</td>
+                    <td class="price-cell">363→401</td>
+                    <td>业绩消化后稳步修复</td>
+                </tr><tr>
+                    <td class="kline-period">5/8-5/22</td>
+                    <td class="price-cell">401→412</td>
+                    <td>横盘整理</td>
+                </tr><tr>
+                    <td class="kline-period">5/26</td>
+                    <td class="price-cell">412(+1.93%)</td>
+                    <td>小幅上涨，盘后$415.5</td>
+                </tr></tbody>
+                </table>
+            </div>
+                
+            <div class="deep-block finance-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">💰</span> 财报亮点
+                </div>
+                <table class="deep-table compact-table">
+                    <tbody><tr>
+                    <td class="fin-item">Q1营收</td>
+                    <td>$358亿(+40%)</td>
+                </tr><tr>
+                    <td class="fin-item">Q1净利润</td>
+                    <td>$181亿(+65%)</td>
+                </tr><tr>
+                    <td class="fin-item">3nm涨价</td>
+                    <td>下半年涨15%，明年再涨10%</td>
+                </tr><tr>
+                    <td class="fin-item">年营收</td>
+                    <td>$1222亿(晶圆86%+其他14%)</td>
+                </tr></tbody>
+                </table>
+            </div>
+                
+            <div class="deep-block fund-block">
+                <div class="deep-block-title">
+                    <span class="deep-icon">💧</span> 资金流向
+                </div>
+                <p class='fund-desc'>做空仅0.52%极低，全球最安全的半导体股</p>
+                <table class="deep-table compact-table">
+                    <tbody><tr>
+                    <td class="fund-item">做空比例</td>
+                    <td class="">0.52%(从0.40%→0.52%微升)</td>
+                </tr><tr>
+                    <td class="fund-item">市值</td>
+                    <td class="">$2.14万亿</td>
+                </tr><tr>
+                    <td class="fund-item">分红</td>
+                    <td class="fund-in">每股$0.88(9月)+$0.751(6月)</td>
+                </tr></tbody>
+                </table>
+            </div>
+            </div>
+
+            <div class='section-block'><h4>新闻/研报</h4><ul class='news-list'><li class="news-item">3纳米下半年涨价15%明年再涨10%(5/27)</li><li class="news-item">台积电飙升推动台湾股市超越印度(5/26)</li><li class="news-item">华为韬定律挑战台积电(5/26)</li><li class="news-item">木头姐减持台积电(5/26)</li></ul></div>
+
+            
+            <div class="argument-section">
+                <div class='argument-col bull-col'><div class='argument-title bull-title'>为什么不现在卖？</div><ul class='argument-list'><li class="bull-reason">Q1营收+40%净利+65%，全球最强半导体基本面</li><li class="bull-reason">3nm下半年涨价15%+明年再涨10%，定价权绝对</li><li class="bull-reason">做空仅0.52%，全市场最低之一</li><li class="bull-reason">AMD Zen7采用台积电1.4nm，长期订单锁定</li></ul></div>
+                <div class='argument-col bear-col'><div class='argument-title bear-title'>为什么不能大意？</div><ul class='argument-list'><li class="bear-reason">华为τ定律挑战，国产替代威胁长远</li><li class="bear-reason">木头姐减持台积电</li><li class="bear-reason">员工分红争议可能影响人才留存</li></ul></div>
+            </div>
+
+            <div class="section-block">
+                <h4>操作策略</h4>
+                <table class="strategy-table">
+                    <thead><tr><th>策略</th><th>价格</th><th>操作</th></tr></thead>
+                    <tbody><tr>
+                    <td>持有24股（$9980）</td>
+                    <td colspan="2">Q1+65%+3nm涨价15%+做空0.52%，全球最确定性半导体</td>
+                </tr><tr>
+                    <td>补仓4股@400-405（≈$1600-1620）</td>
+                    <td colspan="2">补完持28股，成本$403</td>
+                </tr><tr>
+                    <td>止损全部24股@380（回收≈$9120，亏$576）</td>
+                    <td colspan="2">破4/16财报日低点清仓</td>
+                </tr></tbody>
+                </table>
+            </div>
+
+            <div class='section-block'><h4>风险提醒</h4><table class='risk-table'><tbody><tr>
+                    <td class="risk-label">华为τ定律长远挑战</td>
+                    <td></td>
+                </tr><tr>
+                    <td class="risk-label">员工分红争议</td>
+                    <td></td>
+                </tr><tr>
+                    <td class="risk-label">全球贸易摩擦</td>
+                    <td></td>
+                </tr></tbody></table></div>
+
+            <div class="verdict-line">
+                <p>全球半导体基石，Q1净利+65%+3nm涨价15%。做空0.52%说明无人敢空。$9980仓位适中，坚定持有。</p>
+            </div>
+        </div>
+        
+
+<div class='actions-section'><h2 class='section-title' style='margin-top:0'>操作清单</h2><ul><li><span class="action-num">1</span>⚠️ 06809减仓50股@490-500（回收≈$3149-3213）— 仓位占比66%严重超配！</li><li><span class="action-num">2</span>💰 MU减仓4股@900-920（回收≈$3600-3680）— 单日+19%暴涨后锁定利润</li><li><span class="action-num">3</span>💰 GLW减仓15股@195-200（回收≈$2925-3000）— 已超机构目标价$190</li><li><span class="action-num">4</span>💰 CEG减仓15股@305-310（回收≈$4575-4650）— 6月三哩岛前部分获利了结</li><li><span class="action-num">5</span>💰 ISRG明日开盘减8股@520-530（回收≈$4160-4240）— 盘后+19.56%兑现利润</li><li><span class="action-num">6</span>📊 TER持有15股 — V形反弹确认底部+瑞银目标$440</li><li><span class="action-num">7</span>📊 TSM持有24股 — 3nm涨价15%+做空0.52%极低</li><li><span class="action-num">8</span>📊 GRAB持有1100股 — Q1超预期+$3.39底部确认</li><li><span class="action-num">9</span>📊 06690持有1200股 — 南向近20%+大股东从不减持</li><li><span class="action-num">10</span>🗑️ NOTE放弃33股 — 实质性归零$5.94不值得操作</li></ul></div>
+
+
+
+<div class="footer">
+    数据来源：老虎证券 OpenAPI + stock-data skill | 自动生成，仅供参考，不构成投资建议
+</div>
+
+</body>
+</html>
